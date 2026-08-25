@@ -1,0 +1,6 @@
+{
+  "name": "Aawaz TTS",
+  "description": "Aawaz TTS — Convert text to high-fidelity lifelike speech for Pakistani and Urdu voices using Gemini 3.1 Flash TTS, with customizable voices, speech tones, multi-speaker dialogue, and audio export.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

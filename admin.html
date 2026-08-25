@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel — License Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #060a12;
+      --surface: #0d1526;
+      --surface2: #111d33;
+      --border: #1a2d4f;
+      --accent: #3b82f6;
+      --accent2: #06b6d4;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    body::before { content: ''; position: fixed; inset: 0; background-image: linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px); background-size: 50px 50px; pointer-events: none; z-index: 0; }
+    #login-screen { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 200; background: var(--bg); }
+    #login-screen.hidden { display: none; }
+    .login-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 40px 32px; width: 340px; text-align: center; box-shadow: 0 0 40px rgba(59,130,246,0.1); }
+    .login-card .shield { font-size: 52px; margin-bottom: 16px; }
+    .login-card h2 { font-size: 22px; margin-bottom: 6px; }
+    .login-card p { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+    input[type="password"], input[type="text"], input[type="email"], input[type="date"], input[type="number"], select { width: 100%; padding: 12px 16px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 15px; outline: none; transition: border-color 0.2s; font-family: 'JetBrains Mono', monospace; margin-bottom: 10px; }
+    input:focus, select:focus { border-color: var(--accent); }
+    .btn { padding: 12px 24px; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.2s, transform 0.1s; }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; width: 100%; margin-top: 14px; }
+    .btn-danger { background: rgba(239,68,68,0.15); color: var(--danger); border: 1px solid rgba(239,68,68,0.25); }
+    .btn-success { background: rgba(16,185,129,0.15); color: var(--success); border: 1px solid rgba(16,185,129,0.25); }
+    .btn-warning { background: rgba(245,158,11,0.15); color: var(--warning); border: 1px solid rgba(245,158,11,0.25); }
+    .btn-sm { padding: 6px 14px; font-size: 12px; }
+    .login-msg { margin-top: 12px; font-size: 13px; color: var(--danger); min-height: 18px; }
+    #dashboard { position: relative; z-index: 1; }
+    .dash-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
+    .dash-header h1 { font-size: 18px; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .dash-header .who { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .logout-btn { padding: 8px 16px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); border-radius: 8px; color: var(--danger); cursor: pointer; font-size: 13px; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 16px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; text-align: center; }
+    .stat-card .num { font-size: 28px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+    .stat-card .label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .stat-card.total .num { color: var(--accent); }
+    .stat-card.active .num { color: var(--success); }
+    .stat-card.unused .num { color: var(--warning); }
+    .stat-card.blocked .num { color: var(--danger); }
+    .section { margin: 0 16px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+    .section-header { padding: 14px 18px; border-bottom: 1px solid var(--border); font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .section-body { padding: 18px; }
+    .gen-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .gen-row > div { flex: 1; min-width: 140px; }
+    .gen-row label { color: var(--muted); font-size: 13px; white-space: nowrap; display: block; margin-bottom: 4px; }
+    .gen-row input, .gen-row select { margin-bottom: 0; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { padding: 10px 14px; background: var(--surface2); color: var(--muted); font-weight: 600; text-align: left; white-space: nowrap; }
+    td { padding: 10px 14px; border-top: 1px solid var(--border); vertical-align: middle; }
+    tr:hover td { background: rgba(59,130,246,0.04); }
+    .key-code { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--accent2); display: inline-block; }
+    .badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+    .badge.active { background: rgba(16,185,129,0.15); color: var(--success); }
+    .badge.unused { background: rgba(245,158,11,0.15); color: var(--warning); }
+    .badge.blocked { background: rgba(239,68,68,0.15); color: var(--danger); }
+    .badge.expired { background: rgba(107,114,128,0.2); color: #9ca3af; }
+    .device-id { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .actions-cell { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+    #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 24px; font-size: 14px; z-index: 999; transition: transform 0.3s ease; box-shadow: 0 8px 30px rgba(0,0,0,0.4); white-space: nowrap; }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+    .filter-row { display: flex; gap: 10px; margin-bottom: 14px; align-items: center; flex-wrap: wrap; }
+    .filter-row select { max-width: 140px; }
+    .filter-row input { flex: 1; }
+    .empty-state { text-align: center; padding: 40px; color: var(--muted); }
+    .copy-btn { background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--muted); cursor: pointer; padding: 2px 8px; font-size: 11px; transition: color 0.2s; }
+    .copy-btn:hover { color: var(--accent); }
+    .extend-form { display: flex; gap: 4px; align-items: center; margin-top: 4px; }
+    .extend-form input[type="date"], .extend-form input[type="number"] { padding: 4px 8px; font-size: 11px; width: 110px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 4px; margin-bottom: 0; }
+    .extend-form button { padding: 4px 8px; font-size: 11px; }
+    @media (max-width: 600px) { .stats-row { grid-template-columns: repeat(2, 1fr); } .gen-row { flex-direction: column; align-items: stretch; } }
+  </style>
+</head>
+<body>
+<div id="login-screen">
+  <div class="login-card">
+    <div class="shield">🛡️</div>
+    <h2>Admin Login</h2>
+    <p>Restricted access — owner only</p>
+    <input type="email" id="admin-email" placeholder="Email" autocomplete="username" />
+    <input type="password" id="admin-pass" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter') login()" />
+    <button class="btn btn-primary" onclick="login()">Login</button>
+    <div class="login-msg" id="login-msg"></div>
+  </div>
+</div>
+<div id="dashboard" style="display:none;">
+  <div class="dash-header">
+    <div>
+      <h1>🗝️ License Manager</h1>
+      <div class="who" id="who-label"></div>
+    </div>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card total"><div class="num" id="st-total">—</div><div class="label">Total Keys</div></div>
+    <div class="stat-card active"><div class="num" id="st-active">—</div><div class="label">Active</div></div>
+    <div class="stat-card unused"><div class="num" id="st-unused">—</div><div class="label">Unused</div></div>
+    <div class="stat-card blocked"><div class="num" id="st-blocked">—</div><div class="label">Blocked</div></div>
+  </div>
+  <div class="section">
+    <div class="section-header">➕ Generate New License Keys</div>
+    <div class="section-body">
+      <div class="gen-row">
+        <div><label>User Name (optional)</label><input type="text" id="gen-name" placeholder="John Doe" /></div>
+        <div><label>Number of Keys</label><input type="text" id="gen-count" value="1" /></div>
+        <div><label>Expiry Date (optional)</label><input type="date" id="gen-expiry" /></div>
+        <div><label>Character Limit (optional, e.g. 5000)</label><input type="number" id="gen-charlimit" placeholder="Unlimited" /></div>
+        <div style="display:flex; align-items:flex-end;"><button class="btn btn-primary" style="margin-top:0;" onclick="generateKeys()">Generate</button></div>
+      </div>
+      <div id="new-keys-area" style="margin-top:16px; display:none;">
+        <div style="color:var(--muted); font-size:13px; margin-bottom:8px;">New keys — copy and send to user:</div>
+        <div id="new-keys-list" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+      </div>
+    </div>
+  </div>
+  <div class="section" style="margin-bottom: 32px;">
+    <div class="section-header">📋 All License Keys</div>
+    <div class="section-body">
+      <div class="filter-row">
+        <select id="filter-status" onchange="renderTable()">
+          <option value="all">All</option>
+          <option value="unused">Unused</option>
+          <option value="active">Active</option>
+          <option value="blocked">Blocked</option>
+        </select>
+        <input type="text" id="filter-search" placeholder="Search key or name..." oninput="renderTable()" />
+        <button class="btn btn-success btn-sm" onclick="loadKeys()">🔄 Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Key</th>
+              <th>Name</th>
+              <th>Status</th>
+              <th>Device</th>
+              <th>Expiry</th>
+              <th>Used / Limit</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="keys-table">
+            <tr><td colspan="7" class="empty-state">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+<script>
+  // This config is public by design (Firebase web configs always are —
+  // it's not a secret). Real protection comes from Firestore security
+  // rules + this Authentication requirement, not from hiding this object.
+  const firebaseConfig = {
+    apiKey: "AIzaSyCPlUDe5-n3HgeqoFspk5n8j1C1YJNQPOs",
+    authDomain: "expense--tracker-be8e1.firebaseapp.com",
+    projectId: "expense--tracker-be8e1",
+    storageBucket: "expense--tracker-be8e1.firebasestorage.app",
+    messagingSenderId: "498928324087",
+    appId: "1:498928324087:web:7ba2a5a537ff9bbb8af2f2"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  // Only this email is allowed to read/write the licenses collection —
+  // enforced server-side by Firestore security rules, not by this check.
+  // This is just a friendlier UI-level guard.
+  const ALLOWED_ADMIN_EMAIL = "arshadlaidbeer@gmail.com";
+
+  let allKeys = [];
+
+  window.login = async function() {
+    const email = document.getElementById("admin-email").value.trim();
+    const pass = document.getElementById("admin-pass").value;
+    const msg = document.getElementById("login-msg");
+    msg.textContent = "";
+
+    if (!email || !pass) {
+      msg.textContent = "❌ Enter email and password";
+      return;
+    }
+
+    try {
+      await auth.signInWithEmailAndPassword(email, pass);
+      // onAuthStateChanged below handles showing the dashboard.
+    } catch (e) {
+      msg.textContent = "❌ " + (e.message || "Login failed");
+      document.getElementById("admin-pass").value = "";
+    }
+  };
+
+  window.logout = function() {
+    auth.signOut();
+  };
+
+  auth.onAuthStateChanged(function(user) {
+    const loginScreen = document.getElementById("login-screen");
+    const dashboard = document.getElementById("dashboard");
+
+    if (user && user.email === ALLOWED_ADMIN_EMAIL) {
+      loginScreen.classList.add("hidden");
+      dashboard.style.display = "block";
+      document.getElementById("who-label").textContent = user.email;
+      loadKeys();
+    } else if (user && user.email !== ALLOWED_ADMIN_EMAIL) {
+      // Signed in with the wrong account — kick them out immediately.
+      document.getElementById("login-msg").textContent = "❌ This account is not authorized.";
+      auth.signOut();
+    } else {
+      dashboard.style.display = "none";
+      loginScreen.classList.remove("hidden");
+      document.getElementById("admin-pass").value = "";
+    }
+  });
+
+  window.loadKeys = async function() {
+    try {
+      const snap = await db.collection("licenses").orderBy("createdAt", "desc").get();
+      allKeys = [];
+      snap.forEach(d => allKeys.push({ id: d.id, ...d.data() }));
+      updateStats();
+      renderTable();
+      toast("✅ Data refreshed");
+    } catch (e) { toast("❌ Error: " + e.message); }
+  };
+
+  function updateStats() {
+    document.getElementById("st-total").textContent = allKeys.length;
+    document.getElementById("st-active").textContent = allKeys.filter(k => k.status === "active").length;
+    document.getElementById("st-unused").textContent = allKeys.filter(k => k.status === "unused").length;
+    document.getElementById("st-blocked").textContent = allKeys.filter(k => k.status === "blocked").length;
+  }
+
+  window.renderTable = function() {
+    const filterStatus = document.getElementById("filter-status").value;
+    const search = document.getElementById("filter-search").value.toLowerCase();
+    let data = allKeys;
+    if (filterStatus !== "all") data = data.filter(k => k.status === filterStatus);
+    if (search) data = data.filter(k => k.id.toLowerCase().includes(search) || (k.userName || "").toLowerCase().includes(search));
+    const tbody = document.getElementById("keys-table");
+    if (data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" class="empty-state">No keys found</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = data.map(k => {
+      const expiryDisplay = k.expiryDate ? new Date(k.expiryDate).toLocaleDateString("en-US") : "Never";
+      const totalChars = k.totalChars || null;
+      const usedChars = k.usedChars || 0;
+      const quotaDisplay = totalChars ? `${usedChars} / ${totalChars}` : "Unlimited";
+      return `
+        <tr>
+          <td><span class="key-code">${k.id}</span><button class="copy-btn" onclick="copyText('${k.id}')">Copy</button></td>
+          <td>${k.userName || "—"}</td>
+          <td><span class="badge ${k.status}">${k.status === 'active' ? '✅ Active' : k.status === 'blocked' ? '🚫 Blocked' : '⏳ Unused'}</span></td>
+          <td><div class="device-id">${k.deviceId || "—"}</div></td>
+          <td>
+            <div style="display:flex; flex-direction:column; gap:4px;">
+              <span>${expiryDisplay}</span>
+              <div class="extend-form">
+                <input type="date" id="ext-${k.id}" value="${k.expiryDate ? new Date(k.expiryDate).toISOString().slice(0,10) : ''}" />
+                <button class="btn btn-sm btn-warning" onclick="extendExpiry('${k.id}')">Extend</button>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div style="display:flex; flex-direction:column; gap:4px;">
+              <span>${quotaDisplay}</span>
+              <div class="extend-form">
+                <input type="number" id="charlimit-${k.id}" placeholder="Limit" value="${totalChars || ''}" />
+                <button class="btn btn-sm btn-warning" onclick="setCharLimit('${k.id}')">Set</button>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="actions-cell">
+              ${k.status !== 'blocked' ? `<button class="btn btn-danger btn-sm" onclick="blockKey('${k.id}')">Block</button>` : `<button class="btn btn-success btn-sm" onclick="unblockKey('${k.id}')">Unblock</button>`}
+              ${k.deviceId ? `<button class="btn btn-warning btn-sm" onclick="resetDevice('${k.id}')">Reset</button>` : ""}
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join("");
+  };
+
+  window.generateKeys = async function() {
+    const count = parseInt(document.getElementById("gen-count").value) || 1;
+    const name = document.getElementById("gen-name").value.trim();
+    const expiryVal = document.getElementById("gen-expiry").value;
+    const charLimitStr = document.getElementById("gen-charlimit").value;
+    const charLimit = charLimitStr ? parseInt(charLimitStr) : null;
+    if (count < 1 || count > 50) { toast("⚠️ 1 to 50 keys"); return; }
+    const area = document.getElementById("new-keys-area");
+    const list = document.getElementById("new-keys-list");
+    list.innerHTML = "";
+    area.style.display = "block";
+    for (let i = 0; i < count; i++) {
+      const key = generateKeyString();
+      try {
+        const docData = {
+          status: "unused",
+          deviceId: null,
+          userName: name || null,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          activatedAt: null,
+          expiryDate: expiryVal ? new Date(expiryVal).toISOString() : null,
+        };
+        if (charLimit !== null) {
+          docData.totalChars = charLimit;
+          docData.usedChars = 0;
+        }
+        await db.collection("licenses").doc(key).set(docData);
+        const span = document.createElement("div");
+        span.style.cssText = "display:flex; align-items:center; gap:6px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:8px 12px;";
+        span.innerHTML = `<span class="key-code" style="font-size:14px;">${key}</span><button class="copy-btn" onclick="copyText('${key}')">Copy</button>`;
+        list.appendChild(span);
+      } catch (e) { toast("❌ Error: " + key); }
+    }
+    updateStats();
+    renderTable();
+    document.getElementById("gen-name").value = "";
+    document.getElementById("gen-count").value = "1";
+    document.getElementById("gen-expiry").value = "";
+    document.getElementById("gen-charlimit").value = "";
+    toast(`✅ ${count} key(s) generated`);
+  };
+
+  function generateKeyString() {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    const seg = () => Array.from({length: 4}, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+    return `${seg()}-${seg()}-${seg()}`;
+  }
+
+  window.extendExpiry = async function(key) {
+    const val = document.getElementById(`ext-${key}`).value;
+    if (!val) { toast("Select date"); return; }
+    await db.collection("licenses").doc(key).update({ expiryDate: new Date(val).toISOString() });
+    toast("✅ Expiry updated");
+    loadKeys();
+  };
+
+  window.setCharLimit = async function(key) {
+    const val = document.getElementById(`charlimit-${key}`).value;
+    const limit = val ? parseInt(val) : null;
+    try {
+      if (limit !== null && limit < 0) { toast("Invalid limit"); return; }
+      await db.collection("licenses").doc(key).update({ totalChars: limit, usedChars: 0 });
+      toast("✅ Character limit updated (usage reset)");
+      loadKeys();
+    } catch (e) { toast("❌ Error"); }
+  };
+
+  window.blockKey = async function(key) {
+    if (!confirm(`Block ${key}?`)) return;
+    await db.collection("licenses").doc(key).update({ status: "blocked" });
+    toast("🚫 Blocked");
+    loadKeys();
+  };
+
+  window.unblockKey = async function(key) {
+    await db.collection("licenses").doc(key).update({ status: "active" });
+    toast("✅ Unblocked");
+    loadKeys();
+  };
+
+  window.resetDevice = async function(key) {
+    if (!confirm(`Reset device for ${key}?`)) return;
+    await db.collection("licenses").doc(key).update({ status: "unused", deviceId: null, activatedAt: null });
+    toast("🔄 Reset");
+    loadKeys();
+  };
+
+  window.copyText = function(text) {
+    navigator.clipboard.writeText(text).then(() => toast("📋 Copied")).catch(() => toast("❌ Copy failed"));
+  };
+
+  window.toast = function(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 3000);
+  };
+</script>
+</body>
+</html>
