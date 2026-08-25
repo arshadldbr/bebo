@@ -310,6 +310,13 @@ async function startServer() {
     }
   });
 
+  // Admin panel (license key manager) — served from the project root,
+  // available at /admin in both dev and production, regardless of the
+  // Vite/static routing set up below. Not linked from the main app UI.
+  app.get("/admin", (_req, res) => {
+    res.sendFile(path.join(process.cwd(), "admin.html"));
+  });
+
   // Vite middleware in dev or static files in prod
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

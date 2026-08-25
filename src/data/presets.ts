@@ -1,0 +1,161 @@
+import { VoiceInfo, ToneOption, PresetSample } from "../types";
+
+export const VOICES: VoiceInfo[] = [
+  {
+    id: "Kore",
+    name: "Kore",
+    gender: "Female",
+    tone: "Warm, natural & clear",
+    description: "Balanced conversational voice ideal for narration, explanations, and casual listening.",
+    tags: ["Warm", "Conversational", "Balanced"],
+    avatarColor: "from-amber-500 to-rose-500",
+  },
+  {
+    id: "Puck",
+    name: "Puck",
+    gender: "Male / Bright",
+    tone: "Energetic, youthful & lively",
+    description: "Upbeat and engaging personality great for tech podcasts, storytelling, and prompts.",
+    tags: ["Upbeat", "Youthful", "Dynamic"],
+    avatarColor: "from-emerald-500 to-teal-600",
+  },
+  {
+    id: "Charon",
+    name: "Charon",
+    gender: "Male",
+    tone: "Deep, resonant & authoritative",
+    description: "Commanding and trustworthy tone well-suited for documentaries, corporate briefings, and news.",
+    tags: ["Authoritative", "Deep", "Professional"],
+    avatarColor: "from-indigo-600 to-violet-700",
+  },
+  {
+    id: "Fenrir",
+    name: "Fenrir",
+    gender: "Male",
+    tone: "Crisp, focused & distinct",
+    description: "Precise articulation tailored for audiobooks, technical tutorials, and structured guides.",
+    tags: ["Crisp", "Focused", "Articulate"],
+    avatarColor: "from-cyan-600 to-blue-600",
+  },
+  {
+    id: "Zephyr",
+    name: "Zephyr",
+    gender: "Female / Soft",
+    tone: "Calm, smooth & soothing",
+    description: "Gentle cadence perfect for meditation, sleep stories, wellness apps, and relaxation.",
+    tags: ["Gentle", "Calm", "Expressive"],
+    avatarColor: "from-purple-500 to-pink-500",
+  },
+];
+
+export const TONE_STYLES: ToneOption[] = [
+  {
+    id: "natural",
+    label: "Natural",
+    icon: "Sparkles",
+    description: "Neutral, everyday conversational delivery",
+  },
+  {
+    id: "cheerful",
+    label: "Cheerful",
+    icon: "Smile",
+    description: "Upbeat, warm, and smiling delivery",
+  },
+  {
+    id: "calm",
+    label: "Calm & Soothing",
+    icon: "Moon",
+    description: "Slow, gentle, and relaxing cadence",
+  },
+  {
+    id: "professional",
+    label: "Professional",
+    icon: "Briefcase",
+    description: "Formal news anchor and executive style",
+  },
+  {
+    id: "storyteller",
+    label: "Storyteller",
+    icon: "BookOpen",
+    description: "Expressive cadence with rich emotional depth",
+  },
+  {
+    id: "whisper",
+    label: "Whisper",
+    icon: "VolumeX",
+    description: "Intimate, quiet, and soft delivery",
+  },
+  {
+    id: "energetic",
+    label: "Energetic",
+    icon: "Zap",
+    description: "Punchy, fast-paced, and enthusiastic",
+  },
+  {
+    id: "urgent",
+    label: "Urgent",
+    icon: "AlertCircle",
+    description: "Direct, alert, and immediate announcement",
+  },
+];
+
+export const PRESET_SAMPLES: PresetSample[] = [
+  {
+    id: "news-brief",
+    title: "Morning Tech Briefing",
+    category: "News",
+    mode: "single",
+    suggestedVoice: "Charon",
+    suggestedTone: "professional",
+    text: "Good morning. In today's top technology headlines: Breakthroughs in quantum computing are accelerating drug discovery research worldwide, while renewable microgrids achieve record efficiency across three continents.",
+  },
+  {
+    id: "wellness-meditation",
+    title: "Mindful Breath Guide",
+    category: "Wellness",
+    mode: "single",
+    suggestedVoice: "Zephyr",
+    suggestedTone: "calm",
+    text: "Take a slow, deep breath in through your nose... hold it gently for three seconds... and slowly release through your mouth. Let your shoulders drop, and allow your mind to settle into this present moment.",
+  },
+  {
+    id: "story-fantasy",
+    title: "The Clockwork Forest",
+    category: "Storytelling",
+    mode: "single",
+    suggestedVoice: "Kore",
+    suggestedTone: "storyteller",
+    text: "Deep within the silver glade, where the copper pine needles chimed with every gust of wind, young Elira discovered a mechanical bird whose song could mend fractured time itself.",
+  },
+  {
+    id: "product-launch",
+    title: "Product Launch Announce",
+    category: "Marketing",
+    mode: "single",
+    suggestedVoice: "Puck",
+    suggestedTone: "cheerful",
+    text: "We are thrilled to unveil our next-generation audio suite! Designed from the ground up for creators, it transforms raw ideas into crystal-clear studio sound in seconds. Get ready to amplify your voice!",
+  },
+  {
+    id: "podcast-dialogue",
+    title: "Tech Podcast Interview",
+    category: "Dialogue",
+    mode: "multi",
+    speakers: [
+      { speaker: "Alex", voice: "Puck" },
+      { speaker: "Dr. Elena", voice: "Kore" },
+    ],
+    text: "Alex: Welcome back to The Future Frontier! Today we have Dr. Elena Vance discussing neural acoustics.\nDr. Elena: Thanks for having me, Alex! The speed at which speech synthesis is evolving is truly remarkable.\nAlex: What's the biggest shift you've observed this year?\nDr. Elena: The natural pacing and emotional subtleties. Synthesized voices now capture the warmth and micro-pauses of genuine human expression.",
+  },
+  {
+    id: "coffee-shop-convo",
+    title: "Coffee Shop Catch-up",
+    category: "Dialogue",
+    mode: "multi",
+    speakers: [
+      { speaker: "Maya", voice: "Zephyr" },
+      { speaker: "Leo", voice: "Fenrir" },
+    ],
+    text: "Maya: Did you finally get around to trying that new pour-over blend from Colombia?\nLeo: I did this morning! The jasmine and citrus notes were incredible. You were definitely right about the roast profile.\nMaya: I told you so! Let's grab a fresh batch before the roastery closes this afternoon.",
+  },
+];

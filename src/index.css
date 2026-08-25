@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@theme {
+  --color-pk-green-50: #e6f2ec;
+  --color-pk-green-100: #c2ded0;
+  --color-pk-green-200: #8fc1a7;
+  --color-pk-green-300: #5aa27d;
+  --color-pk-green-400: #2c7e59;
+  --color-pk-green-500: #0f5c37;
+  --color-pk-green-600: #0b4c2c;
+  --color-pk-green-700: #01411c;
+  --color-pk-green-800: #013315;
+  --color-pk-green-900: #01260f;
+}
