@@ -11,4 +11,14 @@
   --color-pk-green-700: #01411c;
   --color-pk-green-800: #013315;
   --color-pk-green-900: #01260f;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-urdu: "Noto Nastaliq Urdu", serif;
 }
+
+.font-urdu {
+  font-family: var(--font-urdu);
+  line-height: 2.1;
+  direction: rtl;
+}
+

@@ -1,7 +1,7 @@
 import React from "react";
 import { DialogueSpeaker, VoiceId } from "../types";
 import { VOICES } from "../data/presets";
-import { Users, Plus, MessageSquare } from "lucide-react";
+import { Plus } from "lucide-react";
 
 interface DialogueEditorProps {
   speakers: DialogueSpeaker[];
@@ -32,89 +32,75 @@ export const DialogueEditor: React.FC<DialogueEditorProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-4" id="dialogue-editor-container">
-      {/* Speaker Configuration Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {speakers.map((spk, idx) => {
-          const isSpk1 = idx === 0;
-          return (
-            <div
-              key={idx}
-              id={`speaker-card-${idx}`}
-              className={`p-3.5 rounded-xl border ${
-                isSpk1 ? "border-blue-200 bg-blue-50/30" : "border-emerald-200 bg-emerald-50/30"
-              } flex flex-col gap-2.5`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${
-                      isSpk1 ? "bg-blue-600" : "bg-emerald-600"
-                    }`}
-                  >
-                    {idx + 1}
-                  </span>
-                  <span className="text-xs font-semibold text-slate-800">Speaker {idx + 1}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => insertSpeakerTag(spk.speaker)}
-                  className="text-[11px] font-medium text-slate-600 hover:text-slate-900 bg-white px-2 py-1 rounded-md border border-slate-200 shadow-2xs flex items-center gap-1 cursor-pointer"
-                >
-                  <Plus className="w-3 h-3" />
-                  Insert Line
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-[10px] uppercase font-semibold text-slate-400 block mb-1">
-                    Name
-                  </label>
-                  <input
-                    type="text"
-                    id={`speaker-name-input-${idx}`}
-                    value={spk.speaker}
-                    onChange={(e) => updateSpeaker(idx, "speaker", e.target.value)}
-                    placeholder={`Speaker ${idx + 1}`}
-                    className="w-full text-xs px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-blue-600 text-slate-800"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[10px] uppercase font-semibold text-slate-400 block mb-1">
-                    Voice Actor
-                  </label>
-                  <select
-                    id={`speaker-voice-select-${idx}`}
-                    value={spk.voice}
-                    onChange={(e) => updateSpeaker(idx, "voice", e.target.value)}
-                    className="w-full text-xs px-2 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-hidden focus:ring-1 focus:ring-blue-600 text-slate-800 font-medium"
-                  >
-                    {VOICES.map((v) => (
-                      <option key={v.id} value={v.id}>
-                        {v.name} ({v.gender.split("/")[0].trim()})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+    <div className="flex flex-col gap-3" id="dialogue-editor-container">
+      {speakers.map((spk, idx) => (
+        <div
+          key={idx}
+          id={`speaker-card-${idx}`}
+          className="bg-white rounded-2xl p-3.5"
+          style={{ boxShadow: "0 6px 16px -4px rgba(15,23,42,0.12)", border: "1px solid rgba(15,23,42,0.05)" }}
+        >
+          <div className="flex items-center justify-between mb-2.5">
+            <div className="flex items-center gap-2">
+              <span
+                className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                style={{ background: "linear-gradient(145deg, #146c3a, #01411c)" }}
+              >
+                {idx + 1}
+              </span>
+              <span className="font-urdu text-[11px] font-bold text-slate-600" style={{ lineHeight: 1.4 }}>
+                بولنے والا {idx + 1}
+              </span>
             </div>
-          );
-        })}
-      </div>
+            <button
+              type="button"
+              onClick={() => insertSpeakerTag(spk.speaker)}
+              className="text-[10px] font-medium text-slate-600 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 flex items-center gap-1 cursor-pointer"
+            >
+              <Plus className="w-3 h-3" />
+              <span className="font-urdu" style={{ lineHeight: 1.4 }}>
+                لائن شامل کریں
+              </span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              type="text"
+              id={`speaker-name-input-${idx}`}
+              value={spk.speaker}
+              dir="rtl"
+              onChange={(e) => updateSpeaker(idx, "speaker", e.target.value)}
+              placeholder={`بولنے والا ${idx + 1}`}
+              className="w-full text-xs px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-green-700 text-slate-800"
+            />
+            <select
+              id={`speaker-voice-select-${idx}`}
+              value={spk.voice}
+              onChange={(e) => updateSpeaker(idx, "voice", e.target.value)}
+              className="w-full text-xs px-2 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-green-700 text-slate-800 font-medium"
+            >
+              {VOICES.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      ))}
 
       {/* Script Format Helper */}
-      <div className="flex items-center justify-between text-xs text-slate-500 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
-        <span className="flex items-center gap-1.5">
-          <MessageSquare className="w-3.5 h-3.5 text-blue-500" />
-          Format: <strong>Speaker Name: text message</strong> per line
+      <div className="flex items-center justify-between text-[10px] text-slate-500 bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">
+        <span className="font-urdu" style={{ lineHeight: 1.4 }}>
+          فارمیٹ: <strong>نام: بات</strong> ہر سطر پر
         </span>
         <div className="flex items-center gap-1.5">
           <button
             type="button"
             onClick={() => insertSpeakerTag(speakers[0]?.speaker || "Speaker 1")}
-            className="text-[11px] font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded cursor-pointer"
+            className="text-[11px] font-medium px-2 py-0.5 rounded cursor-pointer"
+            style={{ color: "#01411c", background: "#e6f2ec" }}
           >
             +{speakers[0]?.speaker || "Speaker 1"}
           </button>

@@ -1,18 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import {
-  Play,
-  Pause,
-  RotateCcw,
-  Volume2,
-  VolumeX,
-  Download,
-  Copy,
-  Check,
-  Repeat,
-  Sparkles,
-  Radio,
-  FileAudio,
-} from "lucide-react";
+import { Play, Pause, RotateCcw, Volume2, VolumeX, Download, Copy, Check, Repeat } from "lucide-react";
 import { AudioVisualizer } from "./AudioVisualizer";
 import { TTSGenerationResult } from "../types";
 
@@ -49,12 +36,12 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ result, autoPlay = tru
           .catch(() => setIsPlaying(false));
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result.id, autoPlay]);
 
   const togglePlay = () => {
     const audio = audioRef.current;
     if (!audio) return;
-
     if (isPlaying) {
       audio.pause();
       setIsPlaying(false);
@@ -67,9 +54,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ result, autoPlay = tru
   };
 
   const handleTimeUpdate = () => {
-    if (audioRef.current) {
-      setCurrentTime(audioRef.current.currentTime);
-    }
+    if (audioRef.current) setCurrentTime(audioRef.current.currentTime);
   };
 
   const handleLoadedMetadata = () => {
@@ -102,43 +87,32 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ result, autoPlay = tru
 
   const changePlaybackRate = (rate: number) => {
     setPlaybackRate(rate);
-    if (audioRef.current) {
-      audioRef.current.playbackRate = rate;
-    }
+    if (audioRef.current) audioRef.current.playbackRate = rate;
   };
 
   const toggleMute = () => {
     const nextMuted = !isMuted;
     setIsMuted(nextMuted);
-    if (audioRef.current) {
-      audioRef.current.volume = nextMuted ? 0 : volume;
-    }
+    if (audioRef.current) audioRef.current.volume = nextMuted ? 0 : volume;
   };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVol = parseFloat(e.target.value);
     setVolume(newVol);
     setIsMuted(newVol === 0);
-    if (audioRef.current) {
-      audioRef.current.volume = newVol;
-    }
+    if (audioRef.current) audioRef.current.volume = newVol;
   };
 
   const toggleLoop = () => {
     const nextLoop = !isLooping;
     setIsLooping(nextLoop);
-    if (audioRef.current) {
-      audioRef.current.loop = nextLoop;
-    }
+    if (audioRef.current) audioRef.current.loop = nextLoop;
   };
 
   const handleDownload = () => {
     const link = document.createElement("a");
     link.href = result.audioDataUri;
-    const cleanSnippet = result.text
-      .slice(0, 24)
-      .replace(/[^a-zA-Z0-9]/g, "_")
-      .toLowerCase();
+    const cleanSnippet = result.text.slice(0, 24).replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
     link.download = `speech_${result.voice || "tts"}_${cleanSnippet || "audio"}.wav`;
     document.body.appendChild(link);
     link.click();
@@ -167,8 +141,17 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ result, autoPlay = tru
   return (
     <div
       id="audio-player-card"
-      className="bg-white border border-slate-200 rounded-2xl p-5 md:p-6 shadow-sm flex flex-col gap-5 transition-all"
+      className="rounded-3xl p-4 text-white flex flex-col gap-4 relative overflow-hidden"
+      style={{
+        background: "linear-gradient(155deg, #146c3a, #01411c 70%)",
+        boxShadow: "0 10px 24px -6px rgba(1,65,28,0.4), 0 4px 10px -4px rgba(1,65,28,0.25)",
+      }}
     >
+      <div
+        className="absolute top-0 left-0 right-0 h-8 opacity-20 pointer-events-none"
+        style={{ background: "linear-gradient(180deg, white, transparent)" }}
+      />
+
       <audio
         ref={audioRef}
         src={result.audioDataUri}
@@ -179,25 +162,14 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ result, autoPlay = tru
       />
 
       {/* Header Info */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-semibold">
-            <FileAudio className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-slate-800">
-                {result.mode === "multi" ? "Multi-Speaker Dialogue" : `Voice: ${result.voice || "Kore"}`}
-              </span>
-              <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-100">
-                <Radio className="w-2.5 h-2.5 animate-pulse text-emerald-500" />
-                24kHz Hi-Fi
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              {result.wordCount} words &bull; {result.characterCount} characters &bull; {formatTime(duration)}
-            </p>
-          </div>
+      <div className="flex flex-wrap items-center justify-between gap-3 relative z-10">
+        <div>
+          <span className="text-sm font-semibold text-white">
+            {result.mode === "multi" ? "Multi-Speaker Dialogue" : `Voice: ${result.voice || "Kore"}`}
+          </span>
+          <p className="text-[11px] text-emerald-100/80 mt-0.5">
+            {result.wordCount} words &bull; {result.characterCount} characters &bull; {formatTime(duration)}
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -205,52 +177,49 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ result, autoPlay = tru
             id="copy-text-btn"
             onClick={handleCopyText}
             title="Copy Prompt Text"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium text-white rounded-lg transition-colors"
+            style={{ background: "rgba(255,255,255,0.15)" }}
           >
-            {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-            {copied ? "Copied" : "Copy Text"}
+            {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+            {copied ? "Copied" : "Copy"}
           </button>
           <button
             id="download-wav-btn"
             onClick={handleDownload}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-white rounded-lg transition-colors"
+            style={{ background: "rgba(255,255,255,0.22)" }}
           >
             <Download className="w-3.5 h-3.5" />
-            Download WAV
+            WAV
           </button>
         </div>
       </div>
 
       {/* Waveform Visualizer */}
-      <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 flex flex-col gap-2">
+      <div className="rounded-2xl p-3 relative z-10" style={{ background: "rgba(0,0,0,0.18)" }}>
         <AudioVisualizer
           isPlaying={isPlaying}
           currentTime={currentTime}
           duration={duration}
           onSeek={handleSeek}
-          barColor="#cbd5e1"
-          progressColor="#2563eb"
+          barColor="rgba(255,255,255,0.3)"
+          progressColor="#ffffff"
         />
-
-        <div className="flex items-center justify-between text-xs text-slate-500 font-mono px-1">
+        <div className="flex items-center justify-between text-[11px] text-emerald-100/80 font-mono px-1 mt-1">
           <span>{formatTime(currentTime)}</span>
-          <div className="flex items-center gap-1.5 text-[11px] font-sans text-slate-400">
-            <Sparkles className="w-3 h-3 text-amber-500" />
-            Click anywhere on waveform to scrub
-          </div>
           <span>{formatTime(duration)}</span>
         </div>
       </div>
 
       {/* Playback Controls Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pt-1">
-        {/* Main Transport Controls */}
+      <div className="flex flex-wrap items-center justify-between gap-3 relative z-10">
         <div className="flex items-center gap-2">
           <button
             id="restart-audio-btn"
             onClick={handleRestart}
             title="Replay from start"
-            className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+            className="p-2 text-white/80 hover:text-white rounded-lg transition-colors"
+            style={{ background: "rgba(255,255,255,0.1)" }}
           >
             <RotateCcw className="w-4 h-4" />
           </button>
@@ -258,35 +227,37 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ result, autoPlay = tru
           <button
             id="play-pause-btn"
             onClick={togglePlay}
-            className="w-12 h-12 flex items-center justify-center rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow transition-transform active:scale-95"
+            className="w-11 h-11 flex items-center justify-center rounded-full bg-white transition-transform active:scale-95"
+            style={{ boxShadow: "0 4px 10px rgba(0,0,0,0.3)", color: "#01411c" }}
             aria-label={isPlaying ? "Pause" : "Play"}
           >
-            {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
+            {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
           </button>
 
           <button
             id="loop-toggle-btn"
             onClick={toggleLoop}
             title={isLooping ? "Disable Loop" : "Enable Loop"}
-            className={`p-2 rounded-lg transition-colors ${
-              isLooping ? "bg-blue-50 text-blue-600" : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
-            }`}
+            className="p-2 rounded-lg transition-colors"
+            style={{ background: isLooping ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.1)" }}
           >
-            <Repeat className="w-4 h-4" />
+            <Repeat className="w-4 h-4 text-white" />
           </button>
         </div>
 
         {/* Speed Selector */}
-        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
-          <span className="text-[11px] font-medium text-slate-400 px-1.5 uppercase">Speed</span>
+        <div className="flex items-center gap-0.5 p-1 rounded-xl" style={{ background: "rgba(0,0,0,0.18)" }}>
           {speeds.map((rate) => (
             <button
               key={rate}
               id={`speed-btn-${rate}`}
               onClick={() => changePlaybackRate(rate)}
-              className={`px-2 py-1 text-xs font-medium rounded-lg transition-all ${
-                playbackRate === rate ? "bg-white text-blue-600 shadow-xs font-semibold" : "text-slate-600 hover:text-slate-900"
-              }`}
+              className="px-1.5 py-1 text-[11px] font-medium rounded-lg transition-all"
+              style={{
+                background: playbackRate === rate ? "white" : "transparent",
+                color: playbackRate === rate ? "#01411c" : "rgba(255,255,255,0.8)",
+                fontWeight: playbackRate === rate ? 700 : 500,
+              }}
             >
               {rate}x
             </button>
@@ -298,9 +269,9 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ result, autoPlay = tru
           <button
             id="mute-toggle-btn"
             onClick={toggleMute}
-            className="p-1.5 text-slate-500 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors"
+            className="p-1.5 text-white/80 hover:text-white rounded-lg transition-colors"
           >
-            {isMuted || volume === 0 ? <VolumeX className="w-4 h-4 text-rose-500" /> : <Volume2 className="w-4 h-4" />}
+            {isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
           <input
             id="volume-slider"
@@ -310,7 +281,8 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ result, autoPlay = tru
             step="0.05"
             value={isMuted ? 0 : volume}
             onChange={handleVolumeChange}
-            className="w-20 sm:w-24 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+            className="w-16 sm:w-20 h-1.5 rounded-lg appearance-none cursor-pointer"
+            style={{ background: "rgba(255,255,255,0.3)", accentColor: "#ffffff" }}
             aria-label="Volume slider"
           />
         </div>
