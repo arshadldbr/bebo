@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { KeyRound, Loader2, MessageCircle, Sparkles, Check } from "lucide-react";
+import { KeyRound, Loader2, MessageCircle, Sparkles, Check, X } from "lucide-react";
 import { getDeviceId, setStoredLicenseKey } from "../lib/device";
 
 interface ActivationScreenProps {
@@ -44,6 +44,7 @@ export function ActivationScreen({ onActivated }: ActivationScreenProps) {
   const [loading, setLoading] = useState(false);
   const [trialLoading, setTrialLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
 
   const handleActivate = async () => {
     const trimmed = key.trim().toUpperCase();
@@ -199,33 +200,82 @@ export function ActivationScreen({ onActivated }: ActivationScreenProps) {
               پلانز اور قیمتیں
             </h2>
             <div className="grid grid-cols-2 gap-2">
-              {PLANS.map((plan) => (
-                <div
-                  key={plan.name}
-                  className="rounded-xl p-2.5 border border-slate-200 bg-slate-50 flex flex-col gap-0.5"
-                >
-                  <span className="text-xs font-bold text-slate-800">{plan.name}</span>
-                  <span className="text-[11px] font-semibold" style={{ color: GREEN_DARK }}>
-                    {plan.price}
-                  </span>
-                  <span className="text-[10px] text-slate-500 flex items-center gap-1" style={urdu}>
-                    <Check className="w-2.5 h-2.5 flex-shrink-0" style={{ color: GREEN_DARK }} />
-                    {plan.chars}
-                  </span>
-                  <span className="text-[10px] text-slate-400" style={urdu}>
-                    {plan.minutes}
-                  </span>
-                  {plan.note && (
-                    <span className="text-[9px] text-slate-400 mt-0.5" style={urdu}>
-                      {plan.note}
+              {PLANS.map((plan) => {
+                const clickable = plan.name !== "Free";
+                return (
+                  <div
+                    key={plan.name}
+                    onClick={clickable ? () => setSelectedPlan(plan.name) : undefined}
+                    className={`rounded-xl p-2.5 border border-slate-200 bg-slate-50 flex flex-col gap-0.5 transition-all ${
+                      clickable ? "cursor-pointer active:scale-[0.97] hover:border-slate-300" : ""
+                    }`}
+                    style={clickable ? { boxShadow: "0 1px 2px rgba(0,0,0,0.03)" } : undefined}
+                  >
+                    <span className="text-xs font-bold text-slate-800">{plan.name}</span>
+                    <span className="text-[11px] font-semibold" style={{ color: GREEN_DARK }}>
+                      {plan.price}
                     </span>
-                  )}
-                </div>
-              ))}
+                    <span className="text-[10px] text-slate-500 flex items-center gap-1" style={urdu}>
+                      <Check className="w-2.5 h-2.5 flex-shrink-0" style={{ color: GREEN_DARK }} />
+                      {plan.chars}
+                    </span>
+                    <span className="text-[10px] text-slate-400" style={urdu}>
+                      {plan.minutes}
+                    </span>
+                    {plan.note && (
+                      <span className="text-[9px] text-slate-400 mt-0.5" style={urdu}>
+                        {plan.note}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Plan-specific WhatsApp popup */}
+      {selectedPlan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setSelectedPlan(null)} />
+          <div
+            className="relative w-full max-w-xs bg-white rounded-2xl p-5 text-center"
+            style={{ boxShadow: "0 20px 50px -12px rgba(0,0,0,0.4)" }}
+          >
+            <button
+              onClick={() => setSelectedPlan(null)}
+              className="absolute top-3 left-3 text-slate-400"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div
+              className="w-11 h-11 rounded-full mx-auto flex items-center justify-center mb-3"
+              style={{ backgroundColor: "#e6f9ee" }}
+            >
+              <MessageCircle className="w-5 h-5" style={{ color: "#25D366" }} />
+            </div>
+
+            <p className="text-xs font-bold text-slate-800 mb-1">{selectedPlan} Plan</p>
+            <p className="text-sm text-slate-600 mb-4" style={urdu}>
+              لائسنس کی حاصل کرنے کے لیے "Key" لکھ کر واٹس ایپ کریں
+            </p>
+
+            <a
+              href={`https://wa.me/923149891182?text=${encodeURIComponent(`Key for ${selectedPlan}`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setSelectedPlan(null)}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold text-white transition-transform active:scale-[0.98]"
+              style={{ background: "#25D366", boxShadow: "0 4px 12px -2px rgba(37,211,102,0.5)" }}
+            >
+              <MessageCircle className="w-4 h-4" />
+              +92 314 9891182
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
