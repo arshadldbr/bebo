@@ -125,3 +125,73 @@ export async function consumeQuota(rawKey: string, chars: number): Promise<void>
     console.error("Failed to update usedChars for license", key, err);
   }
 }
+
+const TRIAL_CHAR_LIMIT = 1000;
+const TRIAL_VALID_DAYS = 14;
+const TRIAL_KEY_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+function generateTrialKey(): string {
+  const seg = () =>
+    Array.from({ length: 4 }, () => TRIAL_KEY_CHARS[Math.floor(Math.random() * TRIAL_KEY_CHARS.length)]).join("");
+  return `TRY-${seg()}-${seg()}`;
+}
+
+export interface TrialIssueResult {
+  success: boolean;
+  error?: string;
+  key?: string;
+  totalChars?: number;
+  expiryDate?: string;
+}
+
+/**
+ * Self-service free trial: automatically creates and activates a small,
+ * time-limited license for a device — no admin action required. Limited
+ * to one trial per deviceId (checked via a dedicated "trialDevices"
+ * collection) so the same device can't keep re-rolling free trials.
+ * A determined user could still get a new trial by clearing app data
+ * (which resets the locally-stored deviceId) — this is a known, accepted
+ * limitation of a device-based system with no account/phone verification.
+ */
+export async function issueTrialLicense(deviceId: string): Promise<TrialIssueResult> {
+  if (!deviceId || !deviceId.trim()) {
+    return { success: false, error: "Device ID is required." };
+  }
+
+  const db = getDb();
+  const trialMarkerRef = db.collection("trialDevices").doc(deviceId);
+
+  try {
+    return await db.runTransaction(async (tx) => {
+      const marker = await tx.get(trialMarkerRef);
+      if (marker.exists) {
+        return { success: false, error: "A free trial has already been used on this device." };
+      }
+
+      const key = generateTrialKey();
+      const licenseRef = db.collection("licenses").doc(key);
+      const expiryDate = new Date(Date.now() + TRIAL_VALID_DAYS * 24 * 60 * 60 * 1000).toISOString();
+
+      tx.set(licenseRef, {
+        status: "active",
+        deviceId,
+        userName: "Free Trial",
+        totalChars: TRIAL_CHAR_LIMIT,
+        usedChars: 0,
+        expiryDate,
+        activatedAt: new Date().toISOString(),
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        isTrial: true,
+      });
+      tx.set(trialMarkerRef, {
+        issuedAt: admin.firestore.FieldValue.serverTimestamp(),
+        licenseKey: key,
+      });
+
+      return { success: true, key, totalChars: TRIAL_CHAR_LIMIT, expiryDate };
+    });
+  } catch (err) {
+    console.error("Trial issuance error:", err);
+    return { success: false, error: "Could not start trial right now. Please try again." };
+  }
+}

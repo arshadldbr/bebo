@@ -13,7 +13,7 @@ export const Footer: React.FC = () => {
       <div className="max-w-md mx-auto">
         <div className="text-center">
           <p className="text-[11px] text-white font-bold">Developed / Made by: A.K.A Tech</p>
-          <p className="text-[10px] text-emerald-100/80 mt-0.5">(An Arshad Khan Aastik's Company)</p>
+          <p className="text-[10px] text-emerald-100/80 mt-0.5">(A Company by Arshad Khan Aastik)</p>
         </div>
 
         <div className="flex flex-col items-center gap-1.5 mt-2.5">

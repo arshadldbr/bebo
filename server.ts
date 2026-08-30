@@ -3,7 +3,7 @@ import path from "path";
 import dotenv from "dotenv";
 import { GoogleGenAI, Modality } from "@google/genai";
 import { createServer as createViteServer } from "vite";
-import { validateLicense, consumeQuota } from "./lib/license";
+import { validateLicense, consumeQuota, issueTrialLicense } from "./lib/license";
 
 dotenv.config();
 
@@ -147,6 +147,17 @@ async function startServer() {
   app.post("/api/license/status", async (req, res) => {
     const { key, deviceId } = req.body || {};
     const result = await validateLicense(key, deviceId, 0);
+    return res.json(result);
+  });
+
+  // Self-service free trial — automatically issues and activates a small,
+  // time-limited license for this device, no admin action required.
+  app.post("/api/license/trial", async (req, res) => {
+    const { deviceId } = req.body || {};
+    const result = await issueTrialLicense(deviceId);
+    if (!result.success) {
+      return res.status(403).json(result);
+    }
     return res.json(result);
   });
 
