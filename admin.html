@@ -160,6 +160,34 @@
         </table>
       </div>
     </div>
+  <div class="section" style="margin-bottom: 32px;">
+    <div class="section-header">🎓 Student Codes (GitHub Pusher Tool)</div>
+    <div class="section-body">
+      <div class="gen-row">
+        <div><label>Student Name</label><input type="text" id="student-name" placeholder="Ali Khan" /></div>
+        <div><label>Code (optional — auto-generated if blank)</label><input type="text" id="student-code" placeholder="e.g. ALI-101" /></div>
+        <div style="display:flex; align-items:flex-end;"><button class="btn btn-primary" style="margin-top:0;" onclick="addStudentCode()">Add Student</button></div>
+      </div>
+      <div class="filter-row" style="margin-top:16px;">
+        <input type="text" id="student-search" placeholder="Search name or code..." oninput="renderStudentTable()" />
+        <button class="btn btn-success btn-sm" onclick="loadStudentCodes()">🔄 Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Student Name</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="student-codes-table">
+            <tr><td colspan="4" class="empty-state">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div>
 <div id="toast"></div>
@@ -222,7 +250,7 @@
       dashboard.style.display = "block";
       document.getElementById("who-label").textContent = user.email;
       loadKeys();
-    } else if (user && user.email !== ALLOWED_ADMIN_EMAIL) {
+      loadStudentCodes();
       // Signed in with the wrong account — kick them out immediately.
       document.getElementById("login-msg").textContent = "❌ This account is not authorized.";
       auth.signOut();
@@ -391,6 +419,76 @@
 
   window.copyText = function(text) {
     navigator.clipboard.writeText(text).then(() => toast("📋 Copied")).catch(() => toast("❌ Copy failed"));
+  };
+
+  // ===== Student Codes (GitHub Pusher tool) =====
+  let allStudentCodes = [];
+
+  function generateStudentCode() {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    const seg = () => Array.from({length: 4}, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+    return `STU-${seg()}`;
+  }
+
+  window.loadStudentCodes = async function() {
+    try {
+      const snap = await db.collection("studentCodes").orderBy("createdAt", "desc").get();
+      allStudentCodes = [];
+      snap.forEach(d => allStudentCodes.push({ id: d.id, ...d.data() }));
+      renderStudentTable();
+    } catch (e) { toast("❌ Error loading student codes: " + e.message); }
+  };
+
+  window.addStudentCode = async function() {
+    const name = document.getElementById("student-name").value.trim();
+    let code = document.getElementById("student-code").value.trim().toUpperCase();
+    if (!name) { toast("⚠️ Student name is required"); return; }
+    if (!code) code = generateStudentCode();
+    try {
+      await db.collection("studentCodes").doc(code).set({
+        studentName: name,
+        active: true,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      toast(`✅ Added ${name} — code: ${code}`);
+      document.getElementById("student-name").value = "";
+      document.getElementById("student-code").value = "";
+      loadStudentCodes();
+    } catch (e) { toast("❌ Error: " + e.message); }
+  };
+
+  window.renderStudentTable = function() {
+    const search = document.getElementById("student-search").value.toLowerCase();
+    let data = allStudentCodes;
+    if (search) data = data.filter(s => s.id.toLowerCase().includes(search) || (s.studentName || "").toLowerCase().includes(search));
+    const tbody = document.getElementById("student-codes-table");
+    if (data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" class="empty-state">No student codes yet</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = data.map(s => `
+      <tr>
+        <td><span class="key-code">${s.id}</span><button class="copy-btn" onclick="copyText('${s.id}')">Copy</button></td>
+        <td>${s.studentName || "—"}</td>
+        <td><span class="badge ${s.active === false ? 'blocked' : 'active'}">${s.active === false ? '🚫 Revoked' : '✅ Active'}</span></td>
+        <td>
+          <div class="actions-cell">
+            ${s.active === false
+              ? `<button class="btn btn-success btn-sm" onclick="setStudentActive('${s.id}', true)">Reactivate</button>`
+              : `<button class="btn btn-danger btn-sm" onclick="setStudentActive('${s.id}', false)">Revoke</button>`
+            }
+          </div>
+        </td>
+      </tr>
+    `).join("");
+  };
+
+  window.setStudentActive = async function(code, active) {
+    try {
+      await db.collection("studentCodes").doc(code).update({ active });
+      toast(active ? "✅ Reactivated" : "🚫 Revoked");
+      loadStudentCodes();
+    } catch (e) { toast("❌ Error: " + e.message); }
   };
 
   window.toast = function(msg) {
