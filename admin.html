@@ -252,6 +252,7 @@
       document.getElementById("who-label").textContent = user.email;
       loadKeys();
       loadStudentCodes();
+    } else if (user && user.email !== ALLOWED_ADMIN_EMAIL) {
       // Signed in with the wrong account — kick them out immediately.
       document.getElementById("login-msg").textContent = "❌ This account is not authorized.";
       auth.signOut();
