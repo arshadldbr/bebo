@@ -126,7 +126,6 @@ export async function consumeQuota(rawKey: string, chars: number): Promise<void>
   }
 }
 
-const TRIAL_CHAR_LIMIT = 1000;
 const TRIAL_VALID_DAYS = 14;
 const TRIAL_KEY_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -140,18 +139,22 @@ export interface TrialIssueResult {
   success: boolean;
   error?: string;
   key?: string;
-  totalChars?: number;
   expiryDate?: string;
 }
 
 /**
- * Self-service free trial: automatically creates and activates a small,
- * time-limited license for a device — no admin action required. Limited
- * to one trial per deviceId (checked via a dedicated "trialDevices"
- * collection) so the same device can't keep re-rolling free trials.
- * A determined user could still get a new trial by clearing app data
- * (which resets the locally-stored deviceId) — this is a known, accepted
- * limitation of a device-based system with no account/phone verification.
+ * Self-service free access: automatically creates and activates a
+ * license for a device — no admin action required, no character cap.
+ * Every free request still goes through the shared Gemini rate limiter
+ * (see lib/rateLimiter.ts), which is what actually controls fair usage
+ * across everyone on the free plan — not a per-device quota. Because of
+ * that, there's no "one trial per device" restriction here: reinstalling
+ * the app and requesting free access again doesn't grant any extra
+ * capacity, since the real bottleneck (Gemini's shared free-tier quota)
+ * is global, not per-device.
+ *
+ * If this device already has a free key issued, it's returned again
+ * (reactivated) rather than creating a new one each time.
  */
 export async function issueTrialLicense(deviceId: string): Promise<TrialIssueResult> {
   if (!deviceId || !deviceId.trim()) {
@@ -164,8 +167,16 @@ export async function issueTrialLicense(deviceId: string): Promise<TrialIssueRes
   try {
     return await db.runTransaction(async (tx) => {
       const marker = await tx.get(trialMarkerRef);
+
+      // Already has a free key — just hand it back instead of blocking.
       if (marker.exists) {
-        return { success: false, error: "A free trial has already been used on this device." };
+        const existingKey = marker.data()!.licenseKey as string;
+        const licenseRef = db.collection("licenses").doc(existingKey);
+        const licenseDoc = await tx.get(licenseRef);
+        if (licenseDoc.exists && licenseDoc.data()!.status !== "blocked") {
+          return { success: true, key: existingKey, expiryDate: licenseDoc.data()!.expiryDate };
+        }
+        // Fall through to issue a fresh one if the old one is gone/blocked.
       }
 
       const key = generateTrialKey();
@@ -175,8 +186,8 @@ export async function issueTrialLicense(deviceId: string): Promise<TrialIssueRes
       tx.set(licenseRef, {
         status: "active",
         deviceId,
-        userName: "Free Trial",
-        totalChars: TRIAL_CHAR_LIMIT,
+        userName: "Free Plan",
+        totalChars: null,
         usedChars: 0,
         expiryDate,
         activatedAt: new Date().toISOString(),
@@ -188,10 +199,10 @@ export async function issueTrialLicense(deviceId: string): Promise<TrialIssueRes
         licenseKey: key,
       });
 
-      return { success: true, key, totalChars: TRIAL_CHAR_LIMIT, expiryDate };
+      return { success: true, key, expiryDate };
     });
   } catch (err) {
     console.error("Trial issuance error:", err);
-    return { success: false, error: "Could not start trial right now. Please try again." };
+    return { success: false, error: "Could not start free access right now. Please try again." };
   }
 }
