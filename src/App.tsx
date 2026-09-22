@@ -41,6 +41,7 @@ export default function App() {
   ]);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [queueWaitSeconds, setQueueWaitSeconds] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [currentResult, setCurrentResult] = useState<TTSGenerationResult | null>(null);
   const [history, setHistory] = useState<TTSGenerationResult[]>([]);
@@ -117,63 +118,95 @@ export default function App() {
 
     setIsLoading(true);
     setErrorMessage(null);
+    setQueueWaitSeconds(null);
+
+    const payload = {
+      mode,
+      text: text.trim(),
+      voice: selectedVoice,
+      toneStyle: selectedTone,
+      customInstruction: customInstruction.trim() || undefined,
+      speakers: mode === "multi" ? speakers : undefined,
+      licenseKey: getStoredLicenseKey(),
+      deviceId: getDeviceId(),
+    };
+
+    const MAX_AUTO_RETRIES = 20; // generous cap so a busy queue still resolves automatically
+    let attempt = 0;
 
     try {
-      const payload = {
-        mode,
-        text: text.trim(),
-        voice: selectedVoice,
-        toneStyle: selectedTone,
-        customInstruction: customInstruction.trim() || undefined,
-        speakers: mode === "multi" ? speakers : undefined,
-        licenseKey: getStoredLicenseKey(),
-        deviceId: getDeviceId(),
-      };
+      while (true) {
+        const response = await fetch("/api/tts/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
 
-      const response = await fetch("/api/tts/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+        const data = await response.json();
 
-      const data = await response.json();
+        if (response.status === 429) {
+          if (data.reason === "daily_limit") {
+            setQueueWaitSeconds(null);
+            throw new Error(
+              data.error || "آج کی مفت حد ختم ہو گئی ہے۔ کل دوبارہ کوشش کریں، یا فوری استعمال کے لیے اپ گریڈ کریں۔"
+            );
+          }
 
-      if (response.status === 403) {
-        // License is no longer valid (blocked, expired, quota used up, or
-        // reset from another device) — send the user back to activation.
-        clearActivation();
-        setActivated(false);
-        throw new Error(data.error || "آپ کا لائسنس اب درست نہیں ہے۔ براہ کرم دوبارہ ایکٹیویٹ کریں۔");
+          // "rate_limit" — free plan is busy; wait and retry automatically.
+          attempt += 1;
+          if (attempt > MAX_AUTO_RETRIES) {
+            throw new Error(data.error || "اس وقت سسٹم بہت مصروف ہے۔ کچھ دیر بعد دوبارہ کوشش کریں۔");
+          }
+
+          const wait = Math.max(1, data.retryAfterSeconds || 13);
+          for (let remaining = wait; remaining > 0; remaining--) {
+            setQueueWaitSeconds(remaining);
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+          }
+          continue; // retry the request
+        }
+
+        setQueueWaitSeconds(null);
+
+        if (response.status === 403) {
+          // License is no longer valid (blocked, expired, quota used up, or
+          // reset from another device) — send the user back to activation.
+          clearActivation();
+          setActivated(false);
+          throw new Error(data.error || "آپ کا لائسنس اب درست نہیں ہے۔ براہ کرم دوبارہ ایکٹیویٹ کریں۔");
+        }
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "آواز بنانے میں ناکامی۔ براہ کرم اپنا متن چیک کریں اور دوبارہ کوشش کریں۔");
+        }
+
+        const newResult: TTSGenerationResult = {
+          id: `tts_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          audioDataUri: data.audioDataUri,
+          audioWavBase64: data.audioWavBase64,
+          sampleRate: data.sampleRate || 24000,
+          duration: data.duration || 0,
+          voice: mode === "single" ? selectedVoice : undefined,
+          speakers: mode === "multi" ? speakers : undefined,
+          mode,
+          text: text.trim(),
+          toneStyle: selectedTone,
+          customInstruction: customInstruction.trim() || undefined,
+          characterCount: text.trim().length,
+          wordCount: text.trim().split(/\s+/).filter(Boolean).length,
+          timestamp: Date.now(),
+        };
+
+        setCurrentResult(newResult);
+        saveHistory([newResult, ...history.filter((h) => h.id !== newResult.id)]);
+        break;
       }
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || "آواز بنانے میں ناکامی۔ براہ کرم اپنا متن چیک کریں اور دوبارہ کوشش کریں۔");
-      }
-
-      const newResult: TTSGenerationResult = {
-        id: `tts_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-        audioDataUri: data.audioDataUri,
-        audioWavBase64: data.audioWavBase64,
-        sampleRate: data.sampleRate || 24000,
-        duration: data.duration || 0,
-        voice: mode === "single" ? selectedVoice : undefined,
-        speakers: mode === "multi" ? speakers : undefined,
-        mode,
-        text: text.trim(),
-        toneStyle: selectedTone,
-        customInstruction: customInstruction.trim() || undefined,
-        characterCount: text.trim().length,
-        wordCount: text.trim().split(/\s+/).filter(Boolean).length,
-        timestamp: Date.now(),
-      };
-
-      setCurrentResult(newResult);
-      saveHistory([newResult, ...history.filter((h) => h.id !== newResult.id)]);
     } catch (err: any) {
       console.error("TTS Generation Error:", err);
       setErrorMessage(err.message || "غیر متوقع خرابی پیش آگئی۔");
     } finally {
       setIsLoading(false);
+      setQueueWaitSeconds(null);
     }
   };
 
@@ -439,7 +472,9 @@ export default function App() {
             {isLoading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                تیار ہو رہا ہے...
+                {queueWaitSeconds != null
+                  ? `قطار میں انتظار: ${queueWaitSeconds} سیکنڈ`
+                  : "تیار ہو رہا ہے..."}
               </>
             ) : (
               <>
