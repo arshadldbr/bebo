@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { GoogleGenAI, Modality } from "@google/genai";
 import { createServer as createViteServer } from "vite";
 import { validateLicense, consumeQuota, issueTrialLicense } from "./lib/license";
+import { checkAndReserveGeminiSlot } from "./lib/rateLimiter";
 
 dotenv.config();
 
@@ -183,10 +184,21 @@ async function startServer() {
 
       const trimmedText = text.trim();
 
-      // Enforce license + character quota before spending any Gemini quota.
+      // Enforce license validity (character quota, if any, is checked here too).
       const licenseCheck = await validateLicense(licenseKey, deviceId, trimmedText.length);
       if (!licenseCheck.valid) {
         return res.status(403).json({ error: licenseCheck.error || "Invalid or inactive license." });
+      }
+
+      // Enforce Gemini's actual free-tier capacity (shared across everyone,
+      // since we're not yet on paid billing — see lib/rateLimiter.ts).
+      const rateCheck = await checkAndReserveGeminiSlot();
+      if (!rateCheck.allowed) {
+        return res.status(429).json({
+          error: rateCheck.message || "Please wait a moment and try again.",
+          retryAfterSeconds: rateCheck.retryAfterSeconds,
+          reason: rateCheck.reason,
+        });
       }
 
       const ai = getAiClient();
